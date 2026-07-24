@@ -1,0 +1,18 @@
+This project contains code derived from:
+
+  pumpfun-bonkfun-bot
+  https://github.com/chainstacklabs/pumpfun-bonkfun-bot
+  Copyright Chainstack Labs
+  Licensed under the Apache License, Version 2.0 (see LICENSE)
+
+Derived portions: the sniper framework under src/ (core/, platforms/pumpfun/,
+platforms/letsbonk/, monitoring/universal_*, trading/universal_trader and
+related modules), idl/, pyproject.toml, and .env.example — with local
+modifications to src/bot_runner.py, src/config_loader.py, and
+src/core/client.py.
+
+Original work in this repository: the fishing strategy
+(src/trading/fisher.py, volume_window.py, trade_event.py), the PumpSwap
+platform client (src/platforms/pumpswap/), the single-mint volume listeners
+(src/monitoring/*volume*), the Jito bundle client (src/core/jito.py), the
+top-level sniper/research/ops scripts, and the bots/bot-fisher*.yaml configs.

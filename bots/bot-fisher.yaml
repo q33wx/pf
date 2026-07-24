@@ -1,0 +1,81 @@
+# Fisher — single-token PumpSwap trader (template)
+#
+# Fill in fishing.mint with the token you want to fish, then tune the
+# entry/exit knobs to that token's tempo (window length, thresholds, TP
+# ladder). Study the token's real trade history first: how many swaps/hour,
+# how big its typical 30-min move is, and what the round-trip cost is
+# (~0.7-0.9%: 0.3%/side pool fees + tx fees + spread). Only enter on a REAL
+# wave, take profit early, cut losses fast, and stay out otherwise.
+# "always" entry mode provably bleeds fees on quiet tapes — do not use it.
+
+name: "bot-fisher"
+env_file: ".env"
+rpc_endpoint: "${SOLANA_NODE_RPC_ENDPOINT}"
+wss_endpoint: "${SOLANA_NODE_WSS_ENDPOINT}"
+private_key: "${SOLANA_PRIVATE_KEY}"
+
+enabled: true
+separate_process: false
+
+mode: "fishing"
+platform: "pump_fun"
+
+fishing:
+  mint: "PASTE_TOKEN_MINT_HERE"
+  symbol: "TOKEN"
+  venue: "pumpswap"     # "pumpswap" (migrated AMM) or "bonding_curve"
+
+  # --- ENTRY: wait for genuine buy pressure (volume-gated) ---
+  entry_mode: "volume"
+  volume_window_seconds: 900   # lookback — match the token's tempo
+  volume_source: "poll"        # "poll" | "wss" | "both"
+  min_net_buy_sol: 0.75        # net buys must exceed this in the window
+  min_buy_sell_ratio: 1.75     # buyers must clearly dominate sellers
+  min_trades_in_window: 4      # one whale print is not a wave
+  min_price_change_pct: 0.02   # price must actually be rising over the
+                               # window — blocks entries into absorbed selling
+
+  # --- EXIT: scale out early ---
+  exit_mode: "scale_out"       # "scale_out" (TP ladder) or "simple" (one TP)
+  # Size the ladder to the token's reality: the first rung must be a move
+  # the token actually makes; upper rungs only pay on a real regime change.
+  scale_out_levels:
+    - { pnl_pct: 0.04, sell_pct: 0.50 } # +4%  → sell half
+    - { pnl_pct: 0.08, sell_pct: 0.50 } # +8%  → sell half of remainder
+    - { pnl_pct: 0.15, sell_pct: 1.00 } # +15% → sell the rest
+  stop_loss_percentage: 0.06   # -6% full exit
+  max_hold_seconds: 1200       # if the wave stalls, leave before the bleed
+  price_check_interval: 5
+  cooldown_seconds: 300        # pause between cycles
+  max_cycles: null
+
+  # --- SAFETY RAILS ---
+  min_wallet_sol_reserve: 0.02      # never spend the last SOL (rent + fees)
+  max_daily_loss_sol: 0.15          # halt for the day past this realized loss
+  max_consecutive_buy_failures: 5   # halt if buys keep failing
+
+  # true = log signals only | false = real trades
+  # Flip to false only after you've watched a few ENTRY signals look sane.
+  dry_run: true
+
+trade:
+  buy_amount: 0.05     # SOL per entry — keep small
+  buy_slippage: 0.05   # 5%
+  sell_slippage: 0.08  # 8% — looser so risk exits always fill
+
+priority_fees:
+  enable_dynamic: false
+  enable_fixed: true
+  fixed_amount: 300_000
+  extra_percentage: 0.0
+  hard_cap: 800_000
+
+compute_units:
+  buy: 200_000
+  sell: 150_000
+
+retries:
+  max_attempts: 3
+
+node:
+  max_rps: 10   # stay inside Helius free-tier limits with multiple bots
